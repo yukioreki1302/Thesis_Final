@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 
+# Aggregation of data in the hidden layer
 class AggregateLayer(nn.Module):
     def __init__(self, input_dimension):
         super(AggregateLayer, self).__init__()
@@ -71,6 +72,7 @@ class LDAGM(nn.Module):
             [AggregateLayer(hidden_dimension) for _ in range(hiddenLayer_num)]
         )
 
+        # predictive layer
         self.Predict = nn.Sequential(
             nn.Flatten(),
             nn.Dropout(drop_rate),

@@ -78,7 +78,7 @@ class MyDataset(Dataset):
         self.target = torch.Tensor(
             [1] * positive_data.shape[0] + [0] * negative_data.shape[0]
         )
-        print(f"{dataset} {mode}数据加载完成，数据维度为{data.shape}")
+        print(f"{dataset} {mode} the data is loaded and the shape is {data.shape}")
 
     def __getitem__(self, index):
         return self.data[index], self.target[index]
@@ -97,6 +97,7 @@ def train(
     epochs,
     device,
     learn_rate,
+    weight_decay,
 ):
     dataloader = DataLoader(
         dataset, batch_size, shuffle=True, drop_last=False, pin_memory=True
@@ -112,7 +113,9 @@ def train(
         drop_rate=drop_rate,
         use_aggregate=use_aggregate,
     ).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=learn_rate, weight_decay=weight_decay
+    )
     loss_fn = nn.BCELoss()
     epoch = 0
     loss_record = []
@@ -127,8 +130,8 @@ def train(
             optimizer.step()
             loss_record.append(loss.detach().cpu().item())
         epoch += 1
-        print(f"第{epoch}轮，损失为:{loss.detach().cpu().item()}")
-    print("训练结束")
+        print(f"In round {epoch}, the loss is: {loss.detach().cpu().item()}")
+    print("End of training")
     return loss_record, model
 
 
@@ -151,7 +154,7 @@ def test(model, dataset, batch_size, device):
 
 
 if __name__ == "__main__":
-    # 预设参数
+    # preset parameter
     fold = 0
     # dataset1
     dataset = "dataset1"
@@ -160,10 +163,12 @@ if __name__ == "__main__":
     # dataset = "dataset2"
     # network_num = 2
     # dataset3
-    dataset = "dataset3"
-    network_num = 2
+    # dataset = "dataset3"
+    # network_num = 2
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    # Read the indexes of positive and negative samples for the training and test sets
     positive5foldsidx = np.load(
         "./our_dataset/" + dataset + "/index/positive5foldsidx.npy",
         allow_pickle=True,
@@ -180,21 +185,23 @@ if __name__ == "__main__":
     test_positive_ij = positive_ij[positive5foldsidx[fold]["test"]]
     test_negative_ij = negative_ij[negative5foldsidx[fold]["test"]]
 
+    # Generate dataset objects based on indexes
     train_dataset = MyDataset(
         network_num, fold, train_positive_ij, train_negative_ij, "训练", dataset
     )
     test_dataset = MyDataset(
         network_num, fold, test_positive_ij, test_negative_ij, "测试", dataset
     )
-    # 设置模型参数
+    # Setting Model Parameters
     # dataset1
-    # hidden_dimension = 40
-    # hiddenLayer_num = 2
-    # drop_rate = 0.1
-    # batch_size = 32
-    # epochs = 15
-    # use_aggregate = True
-    # learn_rate = 1e-3
+    hidden_dimension = 40
+    hiddenLayer_num = 2
+    drop_rate = 0.1
+    batch_size = 32
+    epochs = 15
+    use_aggregate = True
+    learn_rate = 1e-2
+    weight_decay = 1e-5
 
     # dataset2
     # hidden_dimension = 20
@@ -203,18 +210,20 @@ if __name__ == "__main__":
     # batch_size = 32
     # epochs = 10
     # use_aggregate = True
-    # learn_rate = 1e-3
+    # learn_rate = 1e-4
+    # weight_decay = 1e-3
 
     # dataset3
-    hidden_dimension = 5
-    hiddenLayer_num = 4
-    drop_rate = 0.1
-    batch_size = 32
-    epochs = 5
-    use_aggregate = True
-    learn_rate = 1e-3
+    # hidden_dimension = 5
+    # hiddenLayer_num = 4
+    # drop_rate = 0.1
+    # batch_size = 32
+    # epochs = 5
+    # use_aggregate = True
+    # learn_rate = 1e-3
+    # weight_decay = 1e-5
 
-    # 训练
+    # train
     loss_record, model = train(
         train_dataset,
         hidden_dimension,
@@ -225,11 +234,14 @@ if __name__ == "__main__":
         epochs,
         device,
         learn_rate,
+        weight_decay,
     )
+    # test
     test_target, pre_target = test(model, test_dataset, batch_size, device)
     # np.save("./result/" + dataset + "/label", test_target)
     # np.save("./result/" + dataset + "/predict", pre_target)
     test_target = np.array(test_target)
+    # Getting a specific score
     AUC = roc_auc_score(test_target, pre_target)
     precision, recall, _ = precision_recall_curve(test_target, pre_target)
     fpr, tpr, thresholds = roc_curve(test_target, pre_target)
@@ -240,4 +252,4 @@ if __name__ == "__main__":
     P = precision_score(test_target, preds)
     R = recall_score(test_target, preds)
     F1 = f1_score(test_target, preds)
-    print(AUC, AUPR, ACC, P, R, F1, MCC)
+    print(AUC, AUPR, MCC, ACC, P, R, F1)
