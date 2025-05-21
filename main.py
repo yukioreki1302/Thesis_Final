@@ -158,7 +158,7 @@ if __name__ == "__main__":
     fold = 0
     # dataset1
     dataset = "dataset1"
-    network_num = 4
+    network_num = 2
     # dataset2
     # dataset = "dataset2"
     # network_num = 2
@@ -238,8 +238,14 @@ if __name__ == "__main__":
     )
     # test
     test_target, pre_target = test(model, test_dataset, batch_size, device)
-    # np.save("./result/" + dataset + "/label", test_target)
-    # np.save("./result/" + dataset + "/predict", pre_target)
+    import os
+    # filepath: c:\Users\admin\OneDrive\Documents\New folder (3)\OneDrive\Desktop\đồ án tốt nghiệp\test_code\LDAGM\main.py
+    # ...existing code...
+    os.makedirs(f'./result/{dataset}', exist_ok=True)
+    np.save("./result/" + dataset + "/label", test_target)
+    # ...existing code...
+    #np.save("./result/" + dataset + "/label", test_target)
+    np.save("./result/" + dataset + "/predict", pre_target)
     test_target = np.array(test_target)
     # Getting a specific score
     AUC = roc_auc_score(test_target, pre_target)
